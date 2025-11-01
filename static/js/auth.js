@@ -1,4 +1,4 @@
-// Authentication and registration with encryption support
+// Authentication manager
 class AuthManager {
     constructor() {
         this.setupAuthForms();
@@ -26,15 +26,11 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         try {
-            // Generate encryption keys for new user
             const keys = await cryptoManager.generateKeyPair(password);
 
-            // Send registration data to server
             const response = await fetch('/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     username: username,
                     email: email,
@@ -47,10 +43,11 @@ class AuthManager {
             });
 
             if (response.ok) {
+                alert('Registration successful! Please log in.');
                 window.location.href = '/login';
             } else {
                 const error = await response.text();
-                alert('Registration failed: ' + error);
+                throw new Error(error);
             }
         } catch (error) {
             console.error('Registration error:', error);
@@ -65,7 +62,7 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         try {
-            // First, get user's encryption keys from server
+            // Get user's encryption keys
             const userResponse = await fetch(`/api/user/keys/${username}`);
             if (!userResponse.ok) {
                 throw new Error('User not found');
@@ -74,36 +71,19 @@ class AuthManager {
             const userData = await userResponse.json();
 
             // Initialize crypto with user's keys
-            await cryptoManager.initializeUser(
-                userData.encrypted_private_key,
-                userData.salt,
-                userData.iv,
-                password
-            );
+            await cryptoManager.initialize(userData, password);
 
-            // Ensure session key is generated and persisted
-            await cryptoManager.ensureSessionKey();
-            await cryptoManager.persistSessionKey();
-
-            console.log('CryptoManager initialized and session key persisted');
-
-            // Login using JSON
+            // Login to server
             const loginResponse = await fetch('/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    password: password
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
             });
 
             if (loginResponse.ok) {
                 window.location.href = '/notes';
             } else {
-                const errorData = await loginResponse.json();
-                throw new Error(errorData.error || 'Login failed');
+                throw new Error('Login failed');
             }
 
         } catch (error) {
@@ -113,7 +93,7 @@ class AuthManager {
     }
 }
 
-// Initialize auth manager when DOM is loaded
+// Initialize auth manager
 document.addEventListener('DOMContentLoaded', function() {
     new AuthManager();
 });

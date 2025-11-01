@@ -27,14 +27,15 @@ class EditorManager {
             // Decrypt the note data
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
-            const tags = note.encrypted_tags ? await cryptoManager.decryptData(note.encrypted_tags, note.iv) : '';
+            // FIX: Removed tags logic
 
             document.getElementById('noteTitle').value = title;
             document.getElementById('noteContent').value = content;
-            document.getElementById('noteTags').value = tags;
+            // FIX: Removed tags logic
         } catch (error) {
             console.error('Error loading note:', error);
-            this.showError('Error loading note: ' + error.message);
+            // FIX: Use global notification function
+            showNotification('Error loading note: ' + error.message, 'error');
         }
     }
 
@@ -42,7 +43,8 @@ class EditorManager {
         console.log('EditorManager: Setting up event listeners');
 
         // Auto-save on input
-        const inputs = ['noteTitle', 'noteContent', 'noteTags'];
+        // FIX: Removed 'noteTags' from inputs
+        const inputs = ['noteTitle', 'noteContent'];
         inputs.forEach(inputId => {
             const element = document.getElementById(inputId);
             if (element) {
@@ -61,17 +63,6 @@ class EditorManager {
             });
         } else {
             console.error('EditorManager: Save button not found!');
-            // Let's try to find any button that might be the save button
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(button => {
-                if (button.textContent.trim() === 'Save') {
-                    console.log('EditorManager: Found save button by text content');
-                    button.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.saveNote(true);
-                    });
-                }
-            });
         }
     }
 
@@ -90,15 +81,6 @@ class EditorManager {
                 return primaryButton;
             }
         }
-
-        // Fallback: any primary button with "Save" text
-        const buttons = document.querySelectorAll('.btn-primary');
-        for (const button of buttons) {
-            if (button.textContent.includes('Save')) {
-                return button;
-            }
-        }
-
         return null;
     }
 
@@ -116,17 +98,19 @@ class EditorManager {
             await cryptoManager.ensureSessionKey();
         } catch (error) {
             console.error('EditorManager: Error ensuring session key:', error);
-            this.showError('Encryption error: ' + error.message);
+            // FIX: Use global notification function
+            showNotification('Encryption error: ' + error.message, 'error');
             return;
     }
 
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;
-        const tags = document.getElementById('noteTags').value;
+        // FIX: Removed tags logic
 
         // Basic validation
         if (!title.trim() && !content.trim()) {
-            this.showError('Note cannot be empty');
+            // FIX: Use global notification function
+            showNotification('Note cannot be empty', 'error');
             return;
         }
 
@@ -135,7 +119,7 @@ class EditorManager {
             // Encrypt all data before sending to server
             const encryptedTitle = await cryptoManager.encryptData(title);
             const encryptedContent = await cryptoManager.encryptData(content);
-            const encryptedTags = tags ? await cryptoManager.encryptData(tags) : null;
+            // FIX: Removed tags logic
 
             console.log('EditorManager: Sending to server...');
             const url = this.isNewNote ? '/api/notes' : `/api/notes/${this.noteId}`;
@@ -149,7 +133,7 @@ class EditorManager {
                 body: JSON.stringify({
                     encrypted_title: encryptedTitle.encrypted,
                     encrypted_content: encryptedContent.encrypted,
-                    encrypted_tags: encryptedTags ? encryptedTags.encrypted : null,
+                    // FIX: Removed 'encrypted_tags'
                     iv: encryptedTitle.iv
                 })
             });
@@ -162,7 +146,8 @@ class EditorManager {
                     console.log('EditorManager: Redirecting to /notes');
                     window.location.href = '/notes';
                 } else {
-                    this.showSuccess('Note saved');
+                    // FIX: Use global notification function
+                    showNotification('Note saved', 'success');
                 }
             } else {
                 const errorText = await response.text();
@@ -171,36 +156,12 @@ class EditorManager {
             }
         } catch (error) {
             console.error('Error saving note:', error);
-            this.showError('Error saving note: ' + error.message);
+            // FIX: Use global notification function
+            showNotification('Error saving note: ' + error.message, 'error');
         }
     }
 
-    showError(message) {
-        alert('Error: ' + message);
-    }
-
-    showSuccess(message) {
-        // Simple success notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            z-index: 1000;
-        `;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            if (notification.parentNode) {
-                document.body.removeChild(notification);
-            }
-        }, 3000);
-    }
+    // FIX: Removed local showError and showSuccess, will use global showNotification
 }
 
 // Global editor instance
@@ -210,22 +171,12 @@ let editorManager;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Editor: DOM loaded');
 
-    // Check if we're on an editor page
-    const noteId = getNoteIdFromUrl();
-
-    if (document.getElementById('noteTitle') && document.getElementById('noteContent')) {
+    // FIX: Check if we're on an editor page by seeing if NOTE_ID is defined
+    if (typeof NOTE_ID !== 'undefined') {
         console.log('Editor: Editor page detected');
-        editorManager = new EditorManager(noteId);
+        editorManager = new EditorManager(NOTE_ID);
         editorManager.init();
     }
 });
 
-function getNoteIdFromUrl() {
-    // Extract note ID from URL for edit pages
-    const path = window.location.pathname;
-    if (path.startsWith('/edit/')) {
-        const parts = path.split('/');
-        return parts[2] ? parseInt(parts[2]) : null;
-    }
-    return null;
-}
+// FIX: Removed getNoteIdFromUrl() as it's no longer needed

@@ -30,11 +30,32 @@ class SessionManager {
         return false;
     }
 
-    init() {
+    async init() {
         console.log('SessionManager: Initializing for logged in user');
+        await this.fetchTimeout(); // Fetch the real timeout
         this.setupEventListeners();
         this.resetInactivityTimer();
         this.startSessionChecker();
+    }
+
+    // FIX: New function to get timeout from the server
+    async fetchTimeout() {
+        try {
+            const response = await fetch('/api/session/timeout');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.timeout && data.timeout > this.WARNING_TIME) {
+                    this.SESSION_TIMEOUT = data.timeout;
+                    console.log(`SessionManager: Timeout set by server: ${this.SESSION_TIMEOUT} ms`);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('SessionManager: Could not fetch timeout, using default.', error);
+        }
+        // Fallback to default
+        this.SESSION_TIMEOUT = this.SESSION_TIMEOUT_DEFAULT;
+        console.log(`SessionManager: Using default timeout: ${this.SESSION_TIMEOUT} ms`);
     }
 
     setupEventListeners() {
@@ -88,19 +109,20 @@ class SessionManager {
 
         const modal = document.getElementById('sessionTimeoutModal');
         const countdownElement = document.getElementById('countdown');
+        const secondsLeft = Math.floor(this.WARNING_TIME / 1000);
 
         if (modal && countdownElement) {
             modal.style.display = 'block';
 
             // Start countdown from 60 seconds
-            let secondsLeft = 60;
-            countdownElement.textContent = secondsLeft;
+            let currentCountdown = secondsLeft;
+            countdownElement.textContent = currentCountdown;
 
             this.countdownInterval = setInterval(() => {
-                secondsLeft--;
-                countdownElement.textContent = secondsLeft;
+                currentCountdown--;
+                countdownElement.textContent = currentCountdown;
 
-                if (secondsLeft <= 0) {
+                if (currentCountdown <= 0) {
                     clearInterval(this.countdownInterval);
                     this.logoutDueToInactivity();
                 }
@@ -137,7 +159,8 @@ class SessionManager {
             if (response.ok) {
                 this.resetInactivityTimer();
                 this.hideSessionWarning();
-                this.showNotification('Session extended', 'success');
+                // FIX: Use global notification function
+                showNotification('Session extended', 'success');
             } else {
                 throw new Error('Failed to extend session');
             }
@@ -148,7 +171,8 @@ class SessionManager {
     }
 
     logoutDueToInactivity() {
-        this.showNotification('Session expired due to inactivity', 'error');
+        // FIX: Use global notification function
+        showNotification('Session expired due to inactivity', 'error');
         setTimeout(() => this.logout(), 1000);
     }
 
@@ -156,39 +180,7 @@ class SessionManager {
         window.location.href = '/logout';
     }
 
-    showNotification(message, type) {
-        // Remove existing notification
-        const existingNotification = document.querySelector('.notification');
-        if (existingNotification) {
-            existingNotification.remove();
-        }
-
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 4px;
-            color: white;
-            z-index: 1000;
-            font-weight: bold;
-        `;
-
-        if (type === 'error') {
-            notification.style.background = '#dc3545';
-        } else {
-            notification.style.background = '#28a745';
-        }
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
+    // FIX: Removed local showNotification, using global one from script.js
 
     async startSessionChecker() {
         // Check session status periodically (every minute)

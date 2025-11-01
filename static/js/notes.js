@@ -46,7 +46,8 @@ async function loadNotes() {
         await displayEncryptedNotes(notes);
     } catch (error) {
         console.error('Error loading notes:', error);
-        showError('Failed to load notes: ' + error.message);
+        // FIX: Use global notification function
+        showNotification('Failed to load notes: ' + error.message, 'error');
     }
 }
 
@@ -76,7 +77,6 @@ async function displayEncryptedNotes(notes) {
         try {
             console.log('Notes: Processing note', note.id);
 
-            // Check if cryptoManager is available
             if (typeof cryptoManager === 'undefined') {
                 throw new Error('cryptoManager is not defined');
             }
@@ -84,7 +84,7 @@ async function displayEncryptedNotes(notes) {
             // Decrypt the note data
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
-            const tags = note.encrypted_tags ? await cryptoManager.decryptData(note.encrypted_tags, note.iv) : '';
+            // FIX: Removed tags logic
 
             console.log('Notes: Note decrypted successfully');
             successfulDecryptions++;
@@ -92,8 +92,8 @@ async function displayEncryptedNotes(notes) {
             const noteElement = createNoteElement({
                 ...note,
                 title,
-                content,
-                tags
+                content
+                // FIX: Removed tags
             });
             grid.appendChild(noteElement);
         } catch (error) {
@@ -105,7 +105,7 @@ async function displayEncryptedNotes(notes) {
                 ...note,
                 title: '[Encrypted - Decryption Failed]',
                 content: 'Unable to decrypt this note. Please check your encryption setup.',
-                tags: ''
+                // FIX: Removed tags
             });
             grid.appendChild(noteElement);
         }
@@ -120,8 +120,7 @@ function createNoteElement(note) {
         <div class="note-content">${escapeHtml(note.content.substring(0, 150))}${note.content.length > 150 ? '...' : ''}</div>
         <div class="note-meta">
             <small>Updated: ${formatDate(note.updated_at)}</small>
-            ${note.tags ? `<div class="note-tags">${formatTags(note.tags)}</div>` : ''}
-        </div>
+            </div>
         <div class="note-actions">
             <a href="/edit/${note.id}" class="btn btn-small">Edit</a>
             <button onclick="deleteNote(${note.id})" class="btn btn-small btn-danger">Delete</button>
@@ -146,9 +145,9 @@ function filterNotes(searchTerm) {
     notes.forEach(note => {
         const title = note.querySelector('.note-title').textContent.toLowerCase();
         const content = note.querySelector('.note-content').textContent.toLowerCase();
-        const tags = note.querySelector('.note-tags') ? note.querySelector('.note-tags').textContent.toLowerCase() : '';
+        // FIX: Removed tags from search logic
 
-        if (title.includes(searchTerm) || content.includes(searchTerm) || tags.includes(searchTerm)) {
+        if (title.includes(searchTerm) || content.includes(searchTerm)) {
             note.style.display = 'block';
         } else {
             note.style.display = 'none';
@@ -165,82 +164,18 @@ async function deleteNote(noteId) {
 
             if (response.ok) {
                 await loadNotes(); // Reload the notes list
-                showSuccess('Note deleted successfully');
+                // FIX: Use global notification function
+                showNotification('Note deleted successfully', 'success');
             } else {
                 throw new Error('Failed to delete note');
             }
         } catch (error) {
             console.error('Error:', error);
-            showError('Error deleting note');
+            // FIX: Use global notification function
+            showNotification('Error deleting note', 'error');
         }
     }
 }
 
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatTags(tagsString) {
-    if (!tagsString) return '';
-
-    return tagsString.split(',').map(tag => {
-        return `<span class="tag">${escapeHtml(tag.trim())}</span>`;
-    }).join('');
-}
-
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function showError(message) {
-    showNotification(message, 'error');
-}
-
-function showSuccess(message) {
-    showNotification(message, 'success');
-}
-
-function showNotification(message, type) {
-    // Remove existing notification
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 4px;
-        color: white;
-        z-index: 1000;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    `;
-
-    if (type === 'error') {
-        notification.style.background = '#dc3545';
-    } else {
-        notification.style.background = '#28a745';
-    }
-
-    document.body.appendChild(notification);
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(100px)';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+// FIX: Removed redundant formatDate, formatTags, escapeHtml, showError, showSuccess, and showNotification
+// They are all now in script.js (except formatTags which is gone)

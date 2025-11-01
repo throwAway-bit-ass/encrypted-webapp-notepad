@@ -211,54 +211,9 @@ class CryptoManager {
         return decoder.decode(decrypted);
     }
 
-    // Encrypt session key with user's public key for storage
-    async encryptSessionKey(publicKeyBase64) {
-        if (!this.sessionKey) {
-            await this.generateSessionKey();
-        }
+    // FIX: Removed unused 'encryptSessionKey' method
 
-        const publicKey = await crypto.subtle.importKey(
-            "spki",
-            this.base64ToArrayBuffer(publicKeyBase64),
-            {
-                name: "RSA-OAEP",
-                hash: "SHA-256"
-            },
-            false,
-            ["encrypt"]
-        );
-
-        const exportedSessionKey = await crypto.subtle.exportKey("raw", this.sessionKey);
-        const encryptedSessionKey = await crypto.subtle.encrypt(
-            { name: "RSA-OAEP" },
-            publicKey,
-            exportedSessionKey
-        );
-
-        return this.arrayBufferToBase64(encryptedSessionKey);
-    }
-
-    // Decrypt session key with user's private key
-    async decryptSessionKey(encryptedSessionKeyBase64) {
-        if (!this.userKeys?.privateKey) {
-            throw new Error('User not authenticated');
-        }
-
-        const encryptedSessionKey = this.base64ToArrayBuffer(encryptedSessionKeyBase64);
-        const sessionKeyBuffer = await crypto.subtle.decrypt(
-            { name: "RSA-OAEP" },
-            this.userKeys.privateKey,
-            encryptedSessionKey
-        );
-
-        this.sessionKey = await crypto.subtle.importKey(
-            "raw",
-            sessionKeyBuffer,
-            { name: "AES-GCM", length: 256 },
-            true,
-            ["encrypt", "decrypt"]
-        );
-    }
+    // FIX: Removed unused 'decryptSessionKey' method
 
     // Utility functions
     arrayBufferToBase64(buffer) {

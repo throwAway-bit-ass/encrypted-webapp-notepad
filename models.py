@@ -2,8 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import base64
-import os
+# Unused 'base64' and 'os' imports removed
 
 db = SQLAlchemy()
 
@@ -29,21 +28,21 @@ class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     encrypted_title = db.Column(db.Text, nullable=False)  # Encrypted title
     encrypted_content = db.Column(db.Text, nullable=False)  # Encrypted content
-    encrypted_tags = db.Column(db.Text)  # Encrypted tags
+    # FIX: Removed 'encrypted_tags' column
     iv = db.Column(db.String(24), nullable=False)  # Initialization vector for AES
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    tags = db.Column(db.String(500))
+    # FIX: Removed 'tags' column
 
     def to_dict(self):
         return {
             'id': self.id,
             'encrypted_title': self.encrypted_title,
             'encrypted_content': self.encrypted_content,
-            'encrypted_tags': self.encrypted_tags,
+            # FIX: Removed 'encrypted_tags'
             'iv': self.iv,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
-            'tags': self.tags
+            # FIX: Removed 'tags'
         }
