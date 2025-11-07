@@ -13,6 +13,9 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))  # For authentication only
     public_key = db.Column(db.Text, nullable=False)  # RSA public key
     encrypted_private_key = db.Column(db.Text, nullable=False)  # RSA private key encrypted with user's master key
+    # FIX: Added column to store the user's note encryption key,
+    # encrypted with their public key.
+    encrypted_note_key = db.Column(db.Text, nullable=False)
     salt = db.Column(db.String(32), nullable=False)  # For key derivation
     iv = db.Column(db.String(24), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

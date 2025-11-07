@@ -59,6 +59,8 @@ def register():
     password = data.get('password')
     public_key = data.get('public_key')
     encrypted_private_key = data.get('encrypted_private_key')
+    # FIX: Get the encrypted note key from the request
+    encrypted_note_key = data.get('encrypted_note_key')
     salt = data.get('salt')
     iv = data.get('iv')
 
@@ -73,6 +75,8 @@ def register():
         email=email,
         public_key=public_key,
         encrypted_private_key=encrypted_private_key,
+        # FIX: Save the new encrypted note key
+        encrypted_note_key=encrypted_note_key,
         salt=salt,
         iv=iv
     )
@@ -128,6 +132,8 @@ def get_user_keys(username):
 
     return jsonify({
         'encrypted_private_key': user.encrypted_private_key,
+        # FIX: Send the encrypted note key to the client
+        'encrypted_note_key': user.encrypted_note_key,
         'salt': user.salt,
         'iv': user.iv
     })

@@ -56,4 +56,20 @@ function showNotification(message, type = 'info') {
 document.addEventListener('DOMContentLoaded', function() {
     // Any global setup that applies to all pages
     console.log('Global scripts initialized');
+
+    // FIX: Add secure logout listener
+    // This finds the logout link and ensures keys are cleared from memory on click
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault(); // Stop the link from navigating immediately
+
+            if (typeof cryptoManager !== 'undefined') {
+                cryptoManager.clearAllKeys();
+            }
+
+            // Proceed to the logout page
+            window.location.href = e.currentTarget.href;
+        });
+    }
 });

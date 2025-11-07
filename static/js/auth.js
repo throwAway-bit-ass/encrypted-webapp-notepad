@@ -37,6 +37,8 @@ class AuthManager {
                     password: password,
                     public_key: keys.publicKey,
                     encrypted_private_key: keys.encryptedPrivateKey,
+                    // FIX: Send the new encrypted note key
+                    encrypted_note_key: keys.encryptedNoteKey,
                     salt: keys.salt,
                     iv: keys.iv
                 })
@@ -70,24 +72,46 @@ class AuthManager {
 
             const userData = await userResponse.json();
 
-            // Initialize crypto with user's keys
-            await cryptoManager.initialize(userData, password);
+            // 2. Decrypt and load RSA private key
+            await cryptoManager.initializeUser(
+                userData.encrypted_private_key,
+                userData.salt,
+                userData.iv,
+                password
+            );
 
-            // Login to server
+            // 3. Decrypt and load the Note Encryption Key
+            await cryptoManager.decryptAndLoadNoteKey(
+                userData.encrypted_note_key
+            );
+
+            console.log('CryptoManager initialized, private key and note key loaded into memory.');
+
+            // 4. Login to server (handles session cookie)
             const loginResponse = await fetch('/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: username, password: password })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
             });
 
             if (loginResponse.ok) {
                 window.location.href = '/notes';
             } else {
-                throw new Error('Login failed');
+                const errorData = await loginResponse.json();
+                // FIX: Clear keys on failed login
+                cryptoManager.clearAllKeys();
+                throw new Error(errorData.error || 'Login failed');
             }
 
         } catch (error) {
             console.error('Login error:', error);
+            // FIX: Clear keys on any error
+            cryptoManager.clearAllKeys();
             alert('Login failed: ' + error.message);
         }
     }

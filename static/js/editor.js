@@ -94,14 +94,8 @@ class EditorManager {
     async saveNote(shouldRedirect = true) {
         console.log('EditorManager: saveNote called, redirect:', shouldRedirect);
 
-        try {
-            await cryptoManager.ensureSessionKey();
-        } catch (error) {
-            console.error('EditorManager: Error ensuring session key:', error);
-            // FIX: Use global notification function
-            showNotification('Encryption error: ' + error.message, 'error');
-            return;
-    }
+        // FIX: Removed 'ensureSessionKey' block.
+        // The key is loaded at login. If it's not here, saving should fail.
 
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;

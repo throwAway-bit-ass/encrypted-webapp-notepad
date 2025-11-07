@@ -26,17 +26,33 @@ class CryptoManager {
                 ["encrypt", "decrypt"]
             );
 
-            // Export keys
+            // 3. Generate the permanent AES Note Key
+            const noteKey = await crypto.subtle.generateKey(
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+
+            // 4. Export keys
             const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
             const privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+            const exportedNoteKey = await crypto.subtle.exportKey("raw", noteKey);
 
             // Encrypt private key with master key
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const encryptedPrivateKey = await this.encryptAES(privateKey, masterKey, iv);
 
+            // 6. Encrypt Note Key (with public key)
+            const encryptedNoteKey = await crypto.subtle.encrypt(
+                { name: "RSA-OAEP" },
+                keyPair.publicKey,
+                exportedNoteKey
+            );
+
             return {
                 publicKey: this.arrayBufferToBase64(publicKey),
                 encryptedPrivateKey: this.arrayBufferToBase64(encryptedPrivateKey),
+                encryptedNoteKey: this.arrayBufferToBase64(encryptedNoteKey),
                 salt: this.arrayBufferToBase64(salt),
                 iv: this.arrayBufferToBase64(iv)
             };
@@ -76,6 +92,34 @@ class CryptoManager {
         } catch (error) {
             console.error('Error initializing user:', error);
             throw new Error('Invalid password or corrupted keys');
+        }
+    }
+
+    // FIX: New function to decrypt and load the Note Key
+    async decryptAndLoadNoteKey(encryptedNoteKeyBase64) {
+        if (!this.userKeys?.privateKey) {
+            throw new Error('User private key not initialized');
+        }
+
+        try {
+            const encryptedNoteKey = this.base64ToArrayBuffer(encryptedNoteKeyBase64);
+            const sessionKeyBuffer = await crypto.subtle.decrypt(
+                { name: "RSA-OAEP" },
+                this.userKeys.privateKey,
+                encryptedNoteKey
+            );
+
+            this.sessionKey = await crypto.subtle.importKey(
+                "raw",
+                sessionKeyBuffer,
+                { name: "AES-GCM", length: 256 },
+                true,
+                ["encrypt", "decrypt"]
+            );
+            console.log('Note Encryption Key successfully decrypted and loaded.');
+        } catch (error) {
+            console.error('Failed to decrypt note key:', error);
+            throw new Error('Could not decrypt note key.');
         }
     }
 
@@ -148,7 +192,9 @@ class CryptoManager {
     // Clear session key (on logout)
     clearSessionKey() {
         this.sessionKey = null;
-        localStorage.removeItem('sessionKey');
+        this.userKeys = null;
+        localStorage.removeItem('sessionKey'); // Clear old key just in case
+        console.log('All in-memory keys cleared.');
     }
 
     // Initialize or load session key
