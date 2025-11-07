@@ -131,7 +131,7 @@ class CryptoManager {
 
     // Load session key from localStorage
     async loadSessionKey() {
-        const keyBase64 = localStorage.getItem('sessionKey');
+        const keyBase64 = sessionStorage.getItem('noteKey');
         if (keyBase64) {
             const keyBuffer = this.base64ToArrayBuffer(keyBase64);
             this.sessionKey = await crypto.subtle.importKey(
@@ -144,14 +144,6 @@ class CryptoManager {
             return true;
         }
         return false;
-    }
-
-    // Clear session key (on logout)
-    clearSessionKey() {
-        this.sessionKey = null;
-        this.userKeys = null;
-        localStorage.removeItem('sessionKey'); // Clear old key just in case
-        console.log('All in-memory keys cleared.');
     }
 
     // Initialize or load session key
