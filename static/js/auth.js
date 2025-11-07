@@ -97,6 +97,11 @@ class AuthManager {
             });
 
             if (loginResponse.ok) {
+                // FIX: Key is ONLY persisted *after* server confirms login
+                await cryptoManager.persistSessionKey();
+                console.log("Server login successful, key persisted.");
+
+                // 6. Redirect
                 window.location.href = '/notes';
             } else {
                 const errorData = await loginResponse.json();
