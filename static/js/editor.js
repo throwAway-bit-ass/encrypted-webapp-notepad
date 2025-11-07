@@ -16,7 +16,12 @@ class EditorManager {
 
     async loadEncryptedNote() {
         try {
-            await cryptoManager.ensureSessionKey();
+            // 'ensureSessionKey' is now called at init,
+            // but we check sessionKey just in case.
+            if (!cryptoManager.sessionKey) {
+                await cryptoManager.ensureSessionKey();
+            }
+            // ... (rest of function is correct)
             const response = await fetch(`/api/notes/${this.noteId}`);
             if (!response.ok) {
                 throw new Error('Failed to load note');
@@ -94,8 +99,11 @@ class EditorManager {
     async saveNote(shouldRedirect = true) {
         console.log('EditorManager: saveNote called, redirect:', shouldRedirect);
 
-        // FIX: Removed 'ensureSessionKey' block.
-        // The key is loaded at login. If it's not here, saving should fail.
+        if (!cryptoManager.sessionKey) {
+            console.error('EditorManager: No session key!');
+            showNotification('Encryption error: No session key. Please log in.', 'error');
+            return;
+        }
 
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;
@@ -110,10 +118,14 @@ class EditorManager {
 
         try {
             console.log('EditorManager: Encrypting data...');
-            // Encrypt all data before sending to server
-            const encryptedTitle = await cryptoManager.encryptData(title);
-            const encryptedContent = await cryptoManager.encryptData(content);
-            // FIX: Removed tags logic
+
+            // FIX: Generate ONE IV for the whole note
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ivBase64 = cryptoManager.arrayBufferToBase64(iv);
+
+            // FIX: Pass the same IV to both encryption calls
+            const encryptedTitle = await cryptoManager.encryptData(title, iv);
+            const encryptedContent = await cryptoManager.encryptData(content, iv);
 
             console.log('EditorManager: Sending to server...');
             const url = this.isNewNote ? '/api/notes' : `/api/notes/${this.noteId}`;
@@ -125,10 +137,9 @@ class EditorManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    encrypted_title: encryptedTitle.encrypted,
-                    encrypted_content: encryptedContent.encrypted,
-                    // FIX: Removed 'encrypted_tags'
-                    iv: encryptedTitle.iv
+                    encrypted_title: encryptedTitle,
+                    encrypted_content: encryptedContent,
+                    iv: ivBase64 // Send the single, correct IV
                 })
             });
 
@@ -136,6 +147,23 @@ class EditorManager {
 
             if (response.ok) {
                 console.log('EditorManager: Save successful!');
+
+                // FIX: Always read the response and update state
+                // const savedNote = await response.json();
+
+                // --- FIX: Handle new note state ---
+                if (this.isNewNote) {
+                    const newNote = await response.json();
+                    this.noteId = newNote.id;
+                    this.isNewNote = false;
+                    console.log(`EditorManager: State updated. New Note ID: ${this.noteId}`);
+
+                    // Update the URL in the browser
+                    const newUrl = `/edit/${this.noteId}`;
+                    window.history.replaceState({ path: newUrl }, '', newUrl);
+                }
+                // --- End of fix ---
+
                 if (shouldRedirect) {
                     console.log('EditorManager: Redirecting to /notes');
                     window.location.href = '/notes';
@@ -162,10 +190,25 @@ class EditorManager {
 let editorManager;
 
 // Initialize based on page type
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('Editor: DOM loaded');
 
-    // FIX: Check if we're on an editor page by seeing if NOTE_ID is defined
+    // FIX: Re-added ensureSessionKey to load from sessionStorage
+    try {
+        if (typeof cryptoManager !== 'undefined') {
+            await cryptoManager.ensureSessionKey();
+            console.log('Editor: Session key ensured');
+        } else {
+            console.error('Editor: cryptoManager not defined');
+        }
+    } catch (error) {
+        console.error('Editor: Error ensuring session key:', error);
+        alert(error.message);
+        window.location.href = '/logout';
+        return; // Do not initialize editor if key fails
+    }
+
+    // Check if we're on an editor page
     if (typeof NOTE_ID !== 'undefined') {
         console.log('Editor: Editor page detected');
         editorManager = new EditorManager(NOTE_ID);

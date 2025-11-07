@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     } catch (error) {
         console.error('Notes: Error ensuring session key:', error);
+        // Redirect to login if key is missing/expired
+        alert(error.message);
+        // FIX: Redirect to /logout to destroy the session, not /login
+        window.location.href = '/logout';
+        return; // Stop further execution
     }
 
     await loadNotes();
@@ -22,16 +27,10 @@ async function loadNotes() {
     console.log('Notes: Loading notes from server...');
     try {
         // Check if cryptoManager and session key are available
-        if (typeof cryptoManager === 'undefined') {
-            throw new Error('cryptoManager is not defined');
-        }
-
-        if (!cryptoManager.sessionKey) {
-            console.log('Notes: No session key, trying to load from storage...');
-            const loaded = await cryptoManager.loadSessionKey();
-            if (!loaded) {
-                throw new Error('Session key not initialized. Please log in again.');
-            }
+        if (typeof cryptoManager === 'undefined' || !cryptoManager.sessionKey) {
+             // This check is now slightly redundant due to the one above,
+             // but provides good defensive programming.
+            throw new Error('Session key not initialized. Please log in again.');
         }
 
         const response = await fetch('/api/notes');

@@ -26,8 +26,7 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         try {
-            const keys = await cryptoManager.generateKeyPair(password);
-
+            const keys = await cryptoManager.generateUserKeys(password);
             const response = await fetch('/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,7 +48,7 @@ class AuthManager {
                 window.location.href = '/login';
             } else {
                 const error = await response.text();
-                throw new Error(error);
+                alert('Registration failed: ' + error);
             }
         } catch (error) {
             console.error('Registration error:', error);
@@ -85,18 +84,16 @@ class AuthManager {
                 userData.encrypted_note_key
             );
 
+            // FIX: Persist the decrypted key to sessionStorage
+            await cryptoManager.persistSessionKey();
+
             console.log('CryptoManager initialized, private key and note key loaded into memory.');
 
             // 4. Login to server (handles session cookie)
             const loginResponse = await fetch('/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: username,
-                    password: password
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
             });
 
             if (loginResponse.ok) {

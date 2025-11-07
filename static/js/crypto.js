@@ -5,8 +5,7 @@ class CryptoManager {
         this.sessionKey = null;
     }
 
-    // Generate RSA key pair for new user
-    async generateKeyPair(password) {
+    async generateUserKeys(password) {
         try {
             // Generate salt for key derivation
             const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -16,21 +15,13 @@ class CryptoManager {
 
             // Generate RSA key pair
             const keyPair = await crypto.subtle.generateKey(
-                {
-                    name: "RSA-OAEP",
-                    modulusLength: 2048,
-                    publicExponent: new Uint8Array([1, 0, 1]),
-                    hash: "SHA-256"
-                },
-                true,
-                ["encrypt", "decrypt"]
+                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+                true, ["encrypt", "decrypt"]
             );
 
             // 3. Generate the permanent AES Note Key
             const noteKey = await crypto.subtle.generateKey(
-                { name: "AES-GCM", length: 256 },
-                true,
-                ["encrypt", "decrypt"]
+                { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
             );
 
             // 4. Export keys
@@ -44,9 +35,7 @@ class CryptoManager {
 
             // 6. Encrypt Note Key (with public key)
             const encryptedNoteKey = await crypto.subtle.encrypt(
-                { name: "RSA-OAEP" },
-                keyPair.publicKey,
-                exportedNoteKey
+                { name: "RSA-OAEP" }, keyPair.publicKey, exportedNoteKey
             );
 
             return {
@@ -56,10 +45,7 @@ class CryptoManager {
                 salt: this.arrayBufferToBase64(salt),
                 iv: this.arrayBufferToBase64(iv)
             };
-        } catch (error) {
-            console.error('Error generating key pair:', error);
-            throw error;
-        }
+        } catch (error) { console.error('Error generating user keys:', error); throw error; }
     }
 
     // Initialize crypto for existing user
@@ -70,21 +56,12 @@ class CryptoManager {
 
             // Decrypt private key
             const privateKeyData = await this.decryptAES(
-                this.base64ToArrayBuffer(encryptedPrivateKey),
-                masterKey,
-                this.base64ToArrayBuffer(iv)
+                this.base64ToArrayBuffer(encryptedPrivateKey), masterKey, this.base64ToArrayBuffer(iv)
             );
 
             // Import private key
             const privateKey = await crypto.subtle.importKey(
-                "pkcs8",
-                privateKeyData,
-                {
-                    name: "RSA-OAEP",
-                    hash: "SHA-256"
-                },
-                true,
-                ["decrypt"]
+                "pkcs8", privateKeyData, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]
             );
 
             this.userKeys = { privateKey };
@@ -117,59 +94,20 @@ class CryptoManager {
                 ["encrypt", "decrypt"]
             );
             console.log('Note Encryption Key successfully decrypted and loaded.');
-        } catch (error) {
-            console.error('Failed to decrypt note key:', error);
-            throw new Error('Could not decrypt note key.');
-        }
-    }
-
-    // Derive key from password using PBKDF2
-    async deriveKey(password, salt) {
-        const encoder = new TextEncoder();
-        const passwordBuffer = encoder.encode(password);
-
-        const importedKey = await crypto.subtle.importKey(
-            "raw",
-            passwordBuffer,
-            "PBKDF2",
-            false,
-            ["deriveKey"]
-        );
-
-        return await crypto.subtle.deriveKey(
-            {
-                name: "PBKDF2",
-                salt: salt,
-                iterations: 100000,
-                hash: "SHA-256"
-            },
-            importedKey,
-            { name: "AES-GCM", length: 256 },
-            false,
-            ["encrypt", "decrypt"]
-        );
-    }
-
-    // Generate session key for note encryption
-    async generateSessionKey() {
-        this.sessionKey = await crypto.subtle.generateKey(
-            {
-                name: "AES-GCM",
-                length: 256
-            },
-            true,
-            ["encrypt", "decrypt"]
-        );
+        } catch (error) { console.error('Failed to decrypt note key:', error); throw new Error('Could not decrypt note key.'); }
     }
 
     async persistSessionKey() {
-    if (!this.sessionKey) {
-        await this.generateSessionKey();
-    }
-
-    const exportedKey = await crypto.subtle.exportKey("raw", this.sessionKey);
-    const keyBase64 = this.arrayBufferToBase64(exportedKey);
-    localStorage.setItem('sessionKey', keyBase64);
+        if (!this.sessionKey) {
+            console.error("No session key to persist.");
+            // FIX: Throw an error instead of failing silently.
+            // This will be caught by the login handler.
+            throw new Error("Could not persist session key: key is missing.");
+        }
+        const exportedKey = await crypto.subtle.exportKey("raw", this.sessionKey);
+        const keyBase64 = this.arrayBufferToBase64(exportedKey);
+        sessionStorage.setItem('noteKey', keyBase64); // Use sessionStorage
+        console.log("Note key persisted to sessionStorage.");
     }
 
     // Load session key from localStorage
@@ -199,40 +137,58 @@ class CryptoManager {
 
     // Initialize or load session key
     async ensureSessionKey() {
-        if (!this.sessionKey) {
-            // Try to load from localStorage first
-            const loaded = await this.loadSessionKey();
-            if (!loaded) {
-                // If not in localStorage, generate a new one
-                await this.generateSessionKey();
-                await this.persistSessionKey();
-            }
+        if (this.sessionKey) {
+            return true; // Already in memory
+        }
+        const loaded = await this.loadSessionKey();
+        if (!loaded) {
+            console.error("Session key not found. User must log in.");
+            throw new Error("Session expired. Please log in again.");
         }
     }
 
-    // Encrypt data with session key
-    async encryptData(data) {
+    // FIX: Updated to clear sessionStorage
+    clearAllKeys() {
+        this.sessionKey = null;
+        this.userKeys = null;
+        sessionStorage.removeItem('noteKey'); // Clear from sessionStorage
+        localStorage.removeItem('sessionKey'); // Clear old one just in case
+        console.log('All in-memory keys and session storage cleared.');
+    }
+
+    async deriveKey(password, salt) {
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(password);
+        const importedKey = await crypto.subtle.importKey("raw", passwordBuffer, "PBKDF2", false, ["deriveKey"]);
+        return await crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+            importedKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+        );
+    }
+
+    // FIX: Updated encryptData to require an IV and return only the data
+    async encryptData(data, iv) {
         if (!this.sessionKey) {
-            await this.generateSessionKey();
+            throw new Error('Note key not initialized');
+        }
+        if (!iv) {
+            throw new Error('An IV must be provided for encryption');
         }
 
         const encoder = new TextEncoder();
         const dataBuffer = encoder.encode(data);
-        const iv = crypto.getRandomValues(new Uint8Array(12));
 
         const encrypted = await crypto.subtle.encrypt(
             {
                 name: "AES-GCM",
-                iv: iv
+                iv: iv // Use the provided IV
             },
             this.sessionKey,
             dataBuffer
         );
 
-        return {
-            encrypted: this.arrayBufferToBase64(encrypted),
-            iv: this.arrayBufferToBase64(iv)
-        };
+        // Return only the encrypted data as a string
+        return this.arrayBufferToBase64(encrypted);
     }
 
     // Decrypt data with session key
@@ -243,16 +199,7 @@ class CryptoManager {
 
         const encryptedBuffer = this.base64ToArrayBuffer(encryptedData);
         const ivBuffer = this.base64ToArrayBuffer(iv);
-
-        const decrypted = await crypto.subtle.decrypt(
-            {
-                name: "AES-GCM",
-                iv: ivBuffer
-            },
-            this.sessionKey,
-            encryptedBuffer
-        );
-
+        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, this.sessionKey, encryptedBuffer);
         const decoder = new TextDecoder();
         return decoder.decode(decrypted);
     }
