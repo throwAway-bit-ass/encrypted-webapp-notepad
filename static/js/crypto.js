@@ -15,8 +15,15 @@ class CryptoManager {
 
             // Generate RSA key pair
             const keyPair = await crypto.subtle.generateKey(
-                { name: "RSA-OAEP", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
-                true, ["encrypt", "decrypt"]
+                {
+                    name: "RSA-OAEP",
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    // FIX: Corrected format from string to object
+                    hash: { name: "SHA-256" }
+                },
+                true,
+                ["encrypt", "decrypt"]
             );
 
             // 3. Generate the permanent AES Note Key
@@ -35,7 +42,10 @@ class CryptoManager {
 
             // 6. Encrypt Note Key (with public key)
             const encryptedNoteKey = await crypto.subtle.encrypt(
-                { name: "RSA-OAEP" }, keyPair.publicKey, exportedNoteKey
+                // FIX: Corrected format from string to object
+                { name: "RSA-OAEP", hash: { name: "SHA-256" } },
+                keyPair.publicKey,
+                exportedNoteKey
             );
 
             return {
@@ -61,7 +71,15 @@ class CryptoManager {
 
             // Import private key
             const privateKey = await crypto.subtle.importKey(
-                "pkcs8", privateKeyData, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]
+                "pkcs8",
+                privateKeyData,
+                {
+                    name: "RSA-OAEP",
+                    // FIX: Corrected format from string to object
+                    hash: { name: "SHA-256" }
+                },
+                true,
+                ["decrypt"]
             );
 
             this.userKeys = { privateKey };
@@ -81,7 +99,8 @@ class CryptoManager {
         try {
             const encryptedNoteKey = this.base64ToArrayBuffer(encryptedNoteKeyBase64);
             const sessionKeyBuffer = await crypto.subtle.decrypt(
-                { name: "RSA-OAEP" },
+                // FIX: Corrected format from string to object
+                { name: "RSA-OAEP", hash: { name: "SHA-256" } },
                 this.userKeys.privateKey,
                 encryptedNoteKey
             );

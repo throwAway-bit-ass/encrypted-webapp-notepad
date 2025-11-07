@@ -65,10 +65,7 @@ class AuthManager {
         try {
             // Get user's encryption keys
             const userResponse = await fetch(`/api/user/keys/${username}`);
-            if (!userResponse.ok) {
-                throw new Error('User not found');
-            }
-
+            if (!userResponse.ok) throw new Error('User not found');
             const userData = await userResponse.json();
 
             // 2. Decrypt and load RSA private key
@@ -87,7 +84,7 @@ class AuthManager {
             // FIX: Persist the decrypted key to sessionStorage
             await cryptoManager.persistSessionKey();
 
-            console.log('CryptoManager initialized, private key and note key loaded into memory.');
+            console.log('CryptoManager initialized, key persisted.');
 
             // 4. Login to server (handles session cookie)
             const loginResponse = await fetch('/login', {
@@ -97,12 +94,12 @@ class AuthManager {
             });
 
             if (loginResponse.ok) {
-                // FIX: Key is ONLY persisted *after* server confirms login
-                await cryptoManager.persistSessionKey();
-                console.log("Server login successful, key persisted.");
+                console.log("Server login successful.");
+                // 7. Redirect
+                setTimeout(() => {
+                    window.location.href = '/notes';
+                }, 0);
 
-                // 6. Redirect
-                window.location.href = '/notes';
             } else {
                 const errorData = await loginResponse.json();
                 // FIX: Clear keys on failed login
