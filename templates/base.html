@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Evernote Clone{% endblock %}</title>
+    <title>{% block title %}Encrypted Notepad{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h2>Evernote Clone</h2>
             </div>
             <div class="nav-links">
                 {% if current_user.is_authenticated %}
                     <span>Welcome, {{ current_user.username }}</span>
-                    <a href="{{ url_for('notes') }}">My Notes</a>
-                    <a href="{{ url_for('create_note_page') }}">Create Note</a>
                     <a href="{{ url_for('logout') }}" id="logout-link">Logout</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}">Login</a>
-                    <a href="{{ url_for('register') }}">Register</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <!-- Session timeout warning modal - ONLY for logged in users -->
     {% if current_user.is_authenticated %}
     <div id="sessionTimeoutModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -53,8 +46,7 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!--  Flash messages removal  -->
-     <script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 const flashMessages = document.querySelectorAll('.flash-message');
@@ -65,16 +57,13 @@
         });
     </script>
 
-    <!-- Global scripts -->
     <script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
-    <!-- Session management script - ONLY for logged in users -->
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/session.js') }}"></script>
     {% endif %}
 
-    <!-- Page-specific scripts -->
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -68,7 +68,7 @@ class EditorManager {
         clearTimeout(this.autoSaveTimeout);
         this.autoSaveTimeout = setTimeout(() => {
             this.saveNote(false);
-        }, 2000);
+        }, 60000);
     }
 
     async saveNote(shouldRedirect = true) {
@@ -80,10 +80,6 @@ class EditorManager {
 
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;
-        if (!title.trim() && !content.trim()) {
-            showNotification('Note cannot be empty', 'error');
-            return;
-        }
 
         try {
             const iv = crypto.getRandomValues(new Uint8Array(12));

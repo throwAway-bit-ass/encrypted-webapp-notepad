@@ -9,7 +9,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///evernote.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notepad.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 TIME_TO_LOGOUT_MINUTES = 5
@@ -36,7 +36,7 @@ def make_session_permanent():
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('notes'))
-    return render_template('index.html')
+    return redirect(url_for('login'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -88,34 +88,27 @@ def login():
     if request.method == 'GET':
         return render_template('login.html')
 
-    if request.is_json:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+    if not request.is_json:
+        return jsonify({'error': 'Invalid request, expected JSON.'}), 415
+
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
     user = User.query.filter_by(username=username).first()
 
     if user and user.check_password(password):
         login_user(user, remember=False)
 
-        if request.is_json:
-            return jsonify({
-                'message': 'Login successful',
-                'encrypted_private_key': user.encrypted_private_key,
-                'encrypted_note_key': user.encrypted_note_key,
-                'salt': user.salt,
-                'iv': user.iv
-            }), 200
-        else:
-            flash('Login successful!')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('notes'))
+        return jsonify({
+            'message': 'Login successful',
+            'encrypted_private_key': user.encrypted_private_key,
+            'encrypted_note_key': user.encrypted_note_key,
+            'salt': user.salt,
+            'iv': user.iv
+        }), 200
     else:
-        if request.is_json:
-            return jsonify({'error': 'Invalid username or password'}), 401
-        else:
-            flash('Invalid username or password')
-            return render_template('login.html')
+        return jsonify({'error': 'Invalid username or password'}), 401
 
 @app.route('/logout')
 def logout():
