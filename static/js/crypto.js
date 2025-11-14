@@ -95,7 +95,6 @@ class CryptoManager {
                 true,
                 ["encrypt", "decrypt"]
             );
-            console.log('Note Encryption Key successfully decrypted and loaded.');
         } catch (error) { console.error('Failed to decrypt note key:', error); throw new Error('Could not decrypt note key.'); }
     }
 
@@ -107,7 +106,6 @@ class CryptoManager {
         const exportedKey = await crypto.subtle.exportKey("raw", this.sessionKey);
         const keyBase64 = this.arrayBufferToBase64(exportedKey);
         sessionStorage.setItem('noteKey', keyBase64);
-        console.log("Note key persisted to sessionStorage.");
     }
 
     async loadSessionKey() {
@@ -141,8 +139,6 @@ class CryptoManager {
         this.sessionKey = null;
         this.userKeys = null;
         sessionStorage.removeItem('noteKey');
-        localStorage.removeItem('sessionKey');
-        console.log('All in-memory keys and session storage cleared.');
     }
 
     async deriveKey(password, salt) {

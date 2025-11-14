@@ -61,19 +61,7 @@ class EditorManager {
     }
 
     getSaveButton() {
-        const buttonById = document.getElementById('saveButton');
-        if (buttonById) {
-            return buttonById;
-        }
-
-        const editorActions = document.querySelector('.editor-actions');
-        if (editorActions) {
-            const primaryButton = editorActions.querySelector('.btn-primary');
-            if (primaryButton && primaryButton.textContent.includes('Save')) {
-                return primaryButton;
-            }
-        }
-        return null;
+        return document.getElementById('saveButton');
     }
 
     scheduleAutoSave() {
@@ -84,8 +72,6 @@ class EditorManager {
     }
 
     async saveNote(shouldRedirect = true) {
-        console.log('EditorManager: saveNote called, redirect:', shouldRedirect);
-
         if (!cryptoManager.sessionKey) {
             console.error('EditorManager: No session key!');
             showNotification('Encryption error: No session key. Please log in.', 'error');
@@ -95,21 +81,17 @@ class EditorManager {
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;
         if (!title.trim() && !content.trim()) {
-            // FIX: Use global notification function
             showNotification('Note cannot be empty', 'error');
             return;
         }
 
         try {
-            console.log('EditorManager: Encrypting data...');
-
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const ivBase64 = cryptoManager.arrayBufferToBase64(iv);
 
             const encryptedTitle = await cryptoManager.encryptData(title, iv);
             const encryptedContent = await cryptoManager.encryptData(content, iv);
 
-            console.log('EditorManager: Sending to server...');
             const url = this.isNewNote ? '/api/notes' : `/api/notes/${this.noteId}`;
             const method = this.isNewNote ? 'POST' : 'PUT';
 
@@ -125,23 +107,17 @@ class EditorManager {
                 })
             });
 
-            console.log('EditorManager: Server response status:', response.status);
-
             if (response.ok) {
-                console.log('EditorManager: Save successful!');
-
                 if (this.isNewNote) {
                     const newNote = await response.json();
                     this.noteId = newNote.id;
                     this.isNewNote = false;
-                    console.log(`EditorManager: State updated. New Note ID: ${this.noteId}`);
 
                     const newUrl = `/edit/${this.noteId}`;
                     window.history.replaceState({ path: newUrl }, '', newUrl);
                 }
 
                 if (shouldRedirect) {
-                    console.log('EditorManager: Redirecting to /notes');
                     window.location.href = '/notes';
                 } else {
                     showNotification('Note saved', 'success');
@@ -162,12 +138,10 @@ class EditorManager {
 let editorManager;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Editor: DOM loaded');
 
     try {
         if (typeof cryptoManager !== 'undefined') {
             await cryptoManager.ensureSessionKey();
-            console.log('Editor: Session key ensured');
         } else {
             console.error('Editor: cryptoManager not defined');
         }
@@ -179,7 +153,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     if (typeof NOTE_ID !== 'undefined') {
-        console.log('Editor: Editor page detected');
         editorManager = new EditorManager(NOTE_ID);
         editorManager.init();
     }

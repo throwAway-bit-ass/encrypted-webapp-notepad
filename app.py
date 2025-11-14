@@ -99,7 +99,13 @@ def login():
         login_user(user, remember=False)
 
         if request.is_json:
-            return jsonify({'message': 'Login successful'}), 200
+            return jsonify({
+                'message': 'Login successful',
+                'encrypted_private_key': user.encrypted_private_key,
+                'encrypted_note_key': user.encrypted_note_key,
+                'salt': user.salt,
+                'iv': user.iv
+            }), 200
         else:
             flash('Login successful!')
             next_page = request.args.get('next')
@@ -110,20 +116,6 @@ def login():
         else:
             flash('Invalid username or password')
             return render_template('login.html')
-
-@app.route('/api/user/keys/<username>')
-def get_user_keys(username):
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    return jsonify({
-        'encrypted_private_key': user.encrypted_private_key,
-        'encrypted_note_key': user.encrypted_note_key,
-        'salt': user.salt,
-        'iv': user.iv
-    })
-
 
 @app.route('/logout')
 def logout():
@@ -140,10 +132,6 @@ def check_session():
 @login_required
 def refresh_session():
     return jsonify({'refreshed': True})
-
-@app.route('/api/session/timeout')
-def get_session_timeout():
-    return jsonify({'timeout': TIME_TO_LOGOUT_MINUTES * 60 * 1000})
 
 @app.route('/notes')
 @login_required

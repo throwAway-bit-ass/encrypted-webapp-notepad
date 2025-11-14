@@ -1,10 +1,7 @@
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Notes: DOM loaded, initializing notes page');
-
     try {
         if (typeof cryptoManager !== 'undefined') {
             await cryptoManager.ensureSessionKey();
-            console.log('Notes: Session key ensured');
         } else {
             console.error('Notes: cryptoManager not defined');
         }
@@ -20,21 +17,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 async function loadNotes() {
-    console.log('Notes: Loading notes from server...');
     try {
         if (typeof cryptoManager === 'undefined' || !cryptoManager.sessionKey) {
             throw new Error('Session key not initialized. Please log in again.');
         }
 
         const response = await fetch('/api/notes');
-        console.log('Notes: Server response status:', response.status);
 
         if (!response.ok) {
             throw new Error('Failed to load notes: ' + response.status);
         }
 
         const notes = await response.json();
-        console.log('Notes: Received notes from server:', notes);
         await displayEncryptedNotes(notes);
     } catch (error) {
         console.error('Error loading notes:', error);
@@ -47,7 +41,6 @@ async function displayEncryptedNotes(notes) {
     grid.innerHTML = '';
 
     if (notes.length === 0) {
-        console.log('Notes: No notes found');
         grid.innerHTML = `
             <div class="empty-state">
                 <h3>No notes yet</h3>
@@ -58,14 +51,12 @@ async function displayEncryptedNotes(notes) {
         return;
     }
 
-    console.log('Notes: Displaying', notes.length, 'notes');
 
     let successfulDecryptions = 0;
     let failedDecryptions = 0;
 
     for (const note of notes) {
         try {
-            console.log('Notes: Processing note', note.id);
 
             if (typeof cryptoManager === 'undefined') {
                 throw new Error('cryptoManager is not defined');
@@ -74,7 +65,6 @@ async function displayEncryptedNotes(notes) {
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
 
-            console.log('Notes: Note decrypted successfully');
             successfulDecryptions++;
 
             const noteElement = createNoteElement({

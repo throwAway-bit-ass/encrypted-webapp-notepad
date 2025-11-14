@@ -8,32 +8,14 @@ class SessionManager {
         this.isWarningActive = false;
         this.countdownInterval = null;
 
+        this.boundEventHandler = this.eventHandler.bind(this)
+
         this.init();
     }
 
     async init() {
-        console.log('SessionManager: Initializing for logged in user');
-        await this.fetchTimeout();
         this.resetInactivityTimer();
         this.startSessionChecker();
-    }
-
-    async fetchTimeout() {
-        try {
-            const response = await fetch('/api/session/timeout');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.timeout && data.timeout > this.WARNING_TIME) {
-                    this.SESSION_TIMEOUT = data.timeout;
-                    console.log(`SessionManager: Timeout set by server: ${this.SESSION_TIMEOUT} ms`);
-                    return;
-                }
-            }
-        } catch (error) {
-            console.error('SessionManager: Could not fetch timeout, using default.', error);
-        }
-        this.SESSION_TIMEOUT = this.SESSION_TIMEOUT_DEFAULT;
-        console.log(`SessionManager: Using default timeout: ${this.SESSION_TIMEOUT} ms`);
     }
 
     resetEventListeners() {
@@ -41,14 +23,14 @@ class SessionManager {
 
         const events = ['keypress', 'scroll', 'touchstart', 'click', 'input'];
         events.forEach(event => {
-            document.addEventListener(event, this.eventHandler.bind(this), true);
+            document.addEventListener(event, this.boundEventHandler, true);
         });
     }
 
     removeEventListeners() {
         const events = ['keypress', 'scroll', 'touchstart', 'click', 'input'];
         events.forEach(event => {
-            document.removeEventListener(event, this.eventHandler.bind(this), true);
+            document.removeEventListener(event, this.boundEventHandler, true);
         });
     }
 
@@ -155,10 +137,6 @@ class SessionManager {
                 this.logoutDueToInactivity();
             }
         }, 60000);
-    }
-
-    resetTimer() {
-        this.resetInactivityTimer();
     }
 }
 

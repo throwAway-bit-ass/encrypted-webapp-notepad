@@ -1,7 +1,7 @@
 class AuthManager {
     constructor() {
         this.setupAuthForms();
-    }
+    }   
 
     setupAuthForms() {
         const registerForm = document.getElementById('registerForm');
@@ -58,25 +58,6 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         try {
-            const userResponse = await fetch(`/api/user/keys/${username}`);
-            if (!userResponse.ok) throw new Error('User not found');
-            const userData = await userResponse.json();
-
-            await cryptoManager.initializeUser(
-                userData.encrypted_private_key,
-                userData.salt,
-                userData.iv,
-                password
-            );
-
-            await cryptoManager.decryptAndLoadNoteKey(
-                userData.encrypted_note_key
-            );
-
-            await cryptoManager.persistSessionKey();
-
-            console.log('CryptoManager initialized, key persisted.');
-
             const loginResponse = await fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -84,7 +65,17 @@ class AuthManager {
             });
 
             if (loginResponse.ok) {
-                console.log("Server login successful.");
+                const userData = await loginResponse.json();
+
+                await cryptoManager.initializeUser(
+                    userData.encrypted_private_key,
+                    userData.salt,
+                    userData.iv,
+                    password
+                );
+
+                await cryptoManager.decryptAndLoadNoteKey(userData.encrypted_note_key);
+                await cryptoManager.persistSessionKey();
                 setTimeout(() => {
                     window.location.href = '/notes';
                 }, 0);
