@@ -291,15 +291,6 @@ body {
     outline: none;
 }
 
-.tags-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-top: 1rem;
-    outline: none;
-}
-
 /* Flash Messages */
 .flash-message {
     background: #d4edda;
@@ -353,21 +344,6 @@ body {
     color: #495057;
 }
 
-.note-tags {
-    margin-top: 0.5rem;
-}
-
-.tag {
-    display: inline-block;
-    background: #e9ecef;
-    color: #495057;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    margin-right: 0.25rem;
-    margin-bottom: 0.25rem;
-}
-
 /* Notifications */
 .notification {
     position: fixed;
@@ -389,7 +365,6 @@ body {
     background: #dc3545;
 }
 
-/* Modal styles for session timeout warning */
 .modal {
     position: fixed;
     top: 0;
@@ -436,7 +411,6 @@ body {
     font-size: 1.2em;
 }
 
-/* Make sure modal appears above everything */
 .modal {
     z-index: 9999;
 }

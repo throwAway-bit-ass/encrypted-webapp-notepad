@@ -1,6 +1,3 @@
-// Global JavaScript functionality - Shared across all pages
-
-// Common utility functions
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
     return unsafe
@@ -17,7 +14,6 @@ function formatDate(dateString) {
 }
 
 function showNotification(message, type = 'info') {
-    // Remove existing notification
     const existingNotification = document.querySelector('.notification');
     if (existingNotification) {
         existingNotification.remove();
@@ -25,14 +21,13 @@ function showNotification(message, type = 'info') {
 
     const notification = document.createElement('div');
 
-    // Determine class based on type
     let notificationClass = 'notification-';
     if (type === 'success') {
         notificationClass += 'success';
     } else if (type === 'error') {
         notificationClass += 'error';
     } else {
-        notificationClass += 'info'; // Fallback
+        notificationClass += 'info';
     }
 
     notification.className = `notification ${notificationClass}`;
@@ -40,35 +35,28 @@ function showNotification(message, type = 'info') {
 
     document.body.appendChild(notification);
 
-    // Auto-remove after 3 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
-        // A simple fade-out before removal
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
             }
-        }, 500); // Wait for fade-out
+        }, 500);
     }, 3000);
 }
 
-// Global initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Any global setup that applies to all pages
     console.log('Global scripts initialized');
 
-    // FIX: Add secure logout listener
-    // This finds the logout link and ensures keys are cleared from memory on click
     const logoutLink = document.getElementById('logout-link');
     if (logoutLink) {
         logoutLink.addEventListener('click', function(e) {
-            e.preventDefault(); // Stop the link from navigating immediately
+            e.preventDefault();
 
             if (typeof cryptoManager !== 'undefined') {
                 cryptoManager.clearAllKeys();
             }
 
-            // Proceed to the logout page
             window.location.href = e.currentTarget.href;
         });
     }

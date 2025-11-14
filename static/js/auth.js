@@ -1,17 +1,14 @@
-// Authentication manager
 class AuthManager {
     constructor() {
         this.setupAuthForms();
     }
 
     setupAuthForms() {
-        // Registration form
         const registerForm = document.getElementById('registerForm');
         if (registerForm) {
             registerForm.addEventListener('submit', (e) => this.handleRegister(e));
         }
 
-        // Login form
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => this.handleLogin(e));
@@ -36,7 +33,6 @@ class AuthManager {
                     password: password,
                     public_key: keys.publicKey,
                     encrypted_private_key: keys.encryptedPrivateKey,
-                    // FIX: Send the new encrypted note key
                     encrypted_note_key: keys.encryptedNoteKey,
                     salt: keys.salt,
                     iv: keys.iv
@@ -44,16 +40,14 @@ class AuthManager {
             });
 
             if (response.ok) {
-                // No alert, just redirect
                 window.location.href = '/login';
             } else {
                 const error = await response.text();
-                showNotification('Registration failed: ' + error, 'error'); // <-- FIX
+                showNotification('Registration failed: ' + error, 'error');
             }
-            // ...
             } catch (error) {
                 console.error('Registration error:', error);
-                showNotification('Registration failed: ' + error.message, 'error'); // <-- FIX
+                showNotification('Registration failed: ' + error.message, 'error');
             }
     }
 
@@ -64,12 +58,10 @@ class AuthManager {
         const password = document.getElementById('password').value;
 
         try {
-            // Get user's encryption keys
             const userResponse = await fetch(`/api/user/keys/${username}`);
             if (!userResponse.ok) throw new Error('User not found');
             const userData = await userResponse.json();
 
-            // 2. Decrypt and load RSA private key
             await cryptoManager.initializeUser(
                 userData.encrypted_private_key,
                 userData.salt,
@@ -77,17 +69,14 @@ class AuthManager {
                 password
             );
 
-            // 3. Decrypt and load the Note Encryption Key
             await cryptoManager.decryptAndLoadNoteKey(
                 userData.encrypted_note_key
             );
 
-            // FIX: Persist the decrypted key to sessionStorage
             await cryptoManager.persistSessionKey();
 
             console.log('CryptoManager initialized, key persisted.');
 
-            // 4. Login to server (handles session cookie)
             const loginResponse = await fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -96,28 +85,24 @@ class AuthManager {
 
             if (loginResponse.ok) {
                 console.log("Server login successful.");
-                // 7. Redirect
                 setTimeout(() => {
                     window.location.href = '/notes';
                 }, 0);
 
             } else {
                 const errorData = await loginResponse.json();
-                // FIX: Clear keys on failed login
                 cryptoManager.clearAllKeys();
                 throw new Error(errorData.error || 'Login failed');
             }
 
         } catch (error) {
             console.error('Login error:', error);
-            // FIX: Clear keys on any error
             cryptoManager.clearAllKeys();
-            showNotification('Login failed: ' + error.message, 'error'); // <-- FIX
+            showNotification('Login failed: ' + error.message, 'error');
         }
     }
 }
 
-// Initialize auth manager
 document.addEventListener('DOMContentLoaded', function() {
     new AuthManager();
 });

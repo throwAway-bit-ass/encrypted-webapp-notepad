@@ -4,7 +4,6 @@ from models import db, User, Note
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
-# Unused 'os' and 'hashlib' imports removed
 
 load_dotenv()
 
@@ -13,15 +12,11 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///evernote.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- Consolidated Session Timeout Logic ---
-# Single source of truth for session timeout
 TIME_TO_LOGOUT_MINUTES = 5
 
-# Session configuration
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=TIME_TO_LOGOUT_MINUTES)
-app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Reset timer on each request
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
-# Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -32,12 +27,9 @@ login_manager.session_protection = 'strong'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Add this to ensure sessions are cleared on server restart
 @app.before_request
 def make_session_permanent():
-    # This ensures the session expires after the configured time
     session.permanent = True
-    # FIX: Uses the single TIME_TO_LOGOUT_MINUTES variable
     app.permanent_session_lifetime = timedelta(minutes=TIME_TO_LOGOUT_MINUTES)
 
 @app.route('/')
@@ -55,14 +47,12 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
 
-    # POST method handling (your existing code)
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
     public_key = data.get('public_key')
     encrypted_private_key = data.get('encrypted_private_key')
-    # FIX: Get the encrypted note key from the request
     encrypted_note_key = data.get('encrypted_note_key')
     salt = data.get('salt')
     iv = data.get('iv')
@@ -78,7 +68,6 @@ def register():
         email=email,
         public_key=public_key,
         encrypted_private_key=encrypted_private_key,
-        # FIX: Save the new encrypted note key
         encrypted_note_key=encrypted_note_key,
         salt=salt,
         iv=iv
@@ -99,7 +88,6 @@ def login():
     if request.method == 'GET':
         return render_template('login.html')
 
-    # Handle login - use JSON to avoid password in logs
     if request.is_json:
         data = request.get_json()
         username = data.get('username')
@@ -131,7 +119,6 @@ def get_user_keys(username):
 
     return jsonify({
         'encrypted_private_key': user.encrypted_private_key,
-        # FIX: Send the encrypted note key to the client
         'encrypted_note_key': user.encrypted_note_key,
         'salt': user.salt,
         'iv': user.iv
@@ -147,20 +134,15 @@ def logout():
 @app.route('/api/session/check')
 @login_required
 def check_session():
-    """Check if the user's session is still valid"""
     return jsonify({'valid': True, 'user': current_user.username})
 
 @app.route('/api/session/refresh', methods=['POST'])
 @login_required
 def refresh_session():
-    """Refresh the session expiry time"""
-    # This will automatically refresh the session because of Flask-Login's configuration
     return jsonify({'refreshed': True})
 
 @app.route('/api/session/timeout')
 def get_session_timeout():
-    """Get the session timeout duration in milliseconds"""
-    # FIX: Reports the correct timeout from the single source of truth
     return jsonify({'timeout': TIME_TO_LOGOUT_MINUTES * 60 * 1000})
 
 @app.route('/notes')
@@ -183,7 +165,6 @@ def create_note():
     note = Note(
         encrypted_title=data.get('encrypted_title'),
         encrypted_content=data.get('encrypted_content'),
-        # FIX: Removed 'encrypted_tags'
         iv=data.get('iv'),
         user_id=current_user.id
     )
@@ -205,10 +186,8 @@ def update_note(note_id):
     note = Note.query.filter_by(id=note_id, user_id=current_user.id).first_or_404()
     data = request.get_json()
 
-    # Update encrypted data
     note.encrypted_title = data.get('encrypted_title', note.encrypted_title)
     note.encrypted_content = data.get('encrypted_content', note.encrypted_content)
-    # FIX: Removed 'encrypted_tags'
     note.iv = data.get('iv', note.iv)
     note.updated_at = datetime.utcnow()
 
@@ -228,14 +207,12 @@ def delete_note(note_id):
 @app.route('/create')
 @login_required
 def create_note_page():
-    # FIX: Renders the new consolidated 'editor.html'
     return render_template('editor.html', note_id=None)
 
 
 @app.route('/edit/<int:note_id>')
 @login_required
 def edit_note_page(note_id):
-    # FIX: Renders the new consolidated 'editor.html' and passes the note_id
     return render_template('editor.html', note_id=note_id)
 
 

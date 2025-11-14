@@ -1,8 +1,6 @@
-// Notes page functionality with encryption support
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Notes: DOM loaded, initializing notes page');
 
-    // Ensure session key is available before loading notes
     try {
         if (typeof cryptoManager !== 'undefined') {
             await cryptoManager.ensureSessionKey();
@@ -12,11 +10,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     } catch (error) {
         console.error('Notes: Error ensuring session key:', error);
-        // Redirect to login if key is missing/expired
         showNotification(error.message, 'error')
-        // FIX: Redirect to /logout to destroy the session, not /login
         window.location.href = '/logout';
-        return; // Stop further execution
+        return;
     }
 
     await loadNotes();
@@ -26,10 +22,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadNotes() {
     console.log('Notes: Loading notes from server...');
     try {
-        // Check if cryptoManager and session key are available
         if (typeof cryptoManager === 'undefined' || !cryptoManager.sessionKey) {
-             // This check is now slightly redundant due to the one above,
-             // but provides good defensive programming.
             throw new Error('Session key not initialized. Please log in again.');
         }
 
@@ -45,7 +38,6 @@ async function loadNotes() {
         await displayEncryptedNotes(notes);
     } catch (error) {
         console.error('Error loading notes:', error);
-        // FIX: Use global notification function
         showNotification('Failed to load notes: ' + error.message, 'error');
     }
 }
@@ -71,7 +63,6 @@ async function displayEncryptedNotes(notes) {
     let successfulDecryptions = 0;
     let failedDecryptions = 0;
 
-    // Decrypt and display each note
     for (const note of notes) {
         try {
             console.log('Notes: Processing note', note.id);
@@ -80,10 +71,8 @@ async function displayEncryptedNotes(notes) {
                 throw new Error('cryptoManager is not defined');
             }
 
-            // Decrypt the note data
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
-            // FIX: Removed tags logic
 
             console.log('Notes: Note decrypted successfully');
             successfulDecryptions++;
@@ -92,19 +81,16 @@ async function displayEncryptedNotes(notes) {
                 ...note,
                 title,
                 content
-                // FIX: Removed tags
             });
             grid.appendChild(noteElement);
         } catch (error) {
             console.error('Error decrypting note:', error);
             failedDecryptions++;
 
-            // Show encrypted placeholder if decryption fails
             const noteElement = createNoteElement({
                 ...note,
                 title: '[Encrypted - Decryption Failed]',
                 content: 'Unable to decrypt this note. Please check your encryption setup.',
-                // FIX: Removed tags
             });
             grid.appendChild(noteElement);
         }
@@ -144,7 +130,6 @@ function filterNotes(searchTerm) {
     notes.forEach(note => {
         const title = note.querySelector('.note-title').textContent.toLowerCase();
         const content = note.querySelector('.note-content').textContent.toLowerCase();
-        // FIX: Removed tags from search logic
 
         if (title.includes(searchTerm) || content.includes(searchTerm)) {
             note.style.display = 'block';
@@ -162,19 +147,15 @@ async function deleteNote(noteId) {
             });
 
             if (response.ok) {
-                await loadNotes(); // Reload the notes list
-                // FIX: Use global notification function
+                await loadNotes();
                 showNotification('Note deleted successfully', 'success');
             } else {
                 throw new Error('Failed to delete note');
             }
         } catch (error) {
             console.error('Error:', error);
-            // FIX: Use global notification function
             showNotification('Error deleting note', 'error');
         }
     }
 }
 
-// FIX: Removed redundant formatDate, formatTags, escapeHtml, showError, showSuccess, and showNotification
-// They are all now in script.js (except formatTags which is gone)

@@ -1,4 +1,3 @@
-// Editor functionality with encryption support
 class EditorManager {
     constructor(noteId = null) {
         this.noteId = noteId;
@@ -16,12 +15,9 @@ class EditorManager {
 
     async loadEncryptedNote() {
         try {
-            // 'ensureSessionKey' is now called at init,
-            // but we check sessionKey just in case.
             if (!cryptoManager.sessionKey) {
                 await cryptoManager.ensureSessionKey();
             }
-            // ... (rest of function is correct)
             const response = await fetch(`/api/notes/${this.noteId}`);
             if (!response.ok) {
                 throw new Error('Failed to load note');
@@ -29,17 +25,13 @@ class EditorManager {
 
             const note = await response.json();
 
-            // Decrypt the note data
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
-            // FIX: Removed tags logic
 
             document.getElementById('noteTitle').value = title;
             document.getElementById('noteContent').value = content;
-            // FIX: Removed tags logic
         } catch (error) {
             console.error('Error loading note:', error);
-            // FIX: Use global notification function
             showNotification('Error loading note: ' + error.message, 'error');
         }
     }
@@ -47,8 +39,6 @@ class EditorManager {
     setupEventListeners() {
         console.log('EditorManager: Setting up event listeners');
 
-        // Auto-save on input
-        // FIX: Removed 'noteTags' from inputs
         const inputs = ['noteTitle', 'noteContent'];
         inputs.forEach(inputId => {
             const element = document.getElementById(inputId);
@@ -57,7 +47,6 @@ class EditorManager {
             }
         });
 
-        // Manual save button - FIXED VERSION
         const saveButton = this.getSaveButton();
         if (saveButton) {
             console.log('EditorManager: Save button found, adding event listener');
@@ -72,13 +61,11 @@ class EditorManager {
     }
 
     getSaveButton() {
-        // First try by ID
         const buttonById = document.getElementById('saveButton');
         if (buttonById) {
             return buttonById;
         }
 
-        // Try the primary button in editor actions
         const editorActions = document.querySelector('.editor-actions');
         if (editorActions) {
             const primaryButton = editorActions.querySelector('.btn-primary');
@@ -107,9 +94,6 @@ class EditorManager {
 
         const title = document.getElementById('noteTitle').value || 'Untitled';
         const content = document.getElementById('noteContent').value;
-        // FIX: Removed tags logic
-
-        // Basic validation
         if (!title.trim() && !content.trim()) {
             // FIX: Use global notification function
             showNotification('Note cannot be empty', 'error');
@@ -119,11 +103,9 @@ class EditorManager {
         try {
             console.log('EditorManager: Encrypting data...');
 
-            // FIX: Generate ONE IV for the whole note
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const ivBase64 = cryptoManager.arrayBufferToBase64(iv);
 
-            // FIX: Pass the same IV to both encryption calls
             const encryptedTitle = await cryptoManager.encryptData(title, iv);
             const encryptedContent = await cryptoManager.encryptData(content, iv);
 
@@ -139,7 +121,7 @@ class EditorManager {
                 body: JSON.stringify({
                     encrypted_title: encryptedTitle,
                     encrypted_content: encryptedContent,
-                    iv: ivBase64 // Send the single, correct IV
+                    iv: ivBase64
                 })
             });
 
@@ -148,27 +130,20 @@ class EditorManager {
             if (response.ok) {
                 console.log('EditorManager: Save successful!');
 
-                // FIX: Always read the response and update state
-                // const savedNote = await response.json();
-
-                // --- FIX: Handle new note state ---
                 if (this.isNewNote) {
                     const newNote = await response.json();
                     this.noteId = newNote.id;
                     this.isNewNote = false;
                     console.log(`EditorManager: State updated. New Note ID: ${this.noteId}`);
 
-                    // Update the URL in the browser
                     const newUrl = `/edit/${this.noteId}`;
                     window.history.replaceState({ path: newUrl }, '', newUrl);
                 }
-                // --- End of fix ---
 
                 if (shouldRedirect) {
                     console.log('EditorManager: Redirecting to /notes');
                     window.location.href = '/notes';
                 } else {
-                    // FIX: Use global notification function
                     showNotification('Note saved', 'success');
                 }
             } else {
@@ -178,22 +153,17 @@ class EditorManager {
             }
         } catch (error) {
             console.error('Error saving note:', error);
-            // FIX: Use global notification function
             showNotification('Error saving note: ' + error.message, 'error');
         }
     }
 
-    // FIX: Removed local showError and showSuccess, will use global showNotification
 }
 
-// Global editor instance
 let editorManager;
 
-// Initialize based on page type
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Editor: DOM loaded');
 
-    // FIX: Re-added ensureSessionKey to load from sessionStorage
     try {
         if (typeof cryptoManager !== 'undefined') {
             await cryptoManager.ensureSessionKey();
@@ -205,10 +175,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('Editor: Error ensuring session key:', error);
         showNotification(error.message, 'error')
         window.location.href = '/logout';
-        return; // Do not initialize editor if key fails
+        return;
     }
 
-    // Check if we're on an editor page
     if (typeof NOTE_ID !== 'undefined') {
         console.log('Editor: Editor page detected');
         editorManager = new EditorManager(NOTE_ID);
@@ -216,4 +185,3 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// FIX: Removed getNoteIdFromUrl() as it's no longer needed
