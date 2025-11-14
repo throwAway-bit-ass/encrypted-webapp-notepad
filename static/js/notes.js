@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch (error) {
         console.error('Notes: Error ensuring session key:', error);
         // Redirect to login if key is missing/expired
-        alert(error.message);
+        showNotification(error.message, 'error')
         // FIX: Redirect to /logout to destroy the session, not /login
         window.location.href = '/logout';
         return; // Stop further execution

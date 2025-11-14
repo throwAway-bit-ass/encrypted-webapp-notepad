@@ -44,16 +44,17 @@ class AuthManager {
             });
 
             if (response.ok) {
-                alert('Registration successful! Please log in.');
+                // No alert, just redirect
                 window.location.href = '/login';
             } else {
                 const error = await response.text();
-                alert('Registration failed: ' + error);
+                showNotification('Registration failed: ' + error, 'error'); // <-- FIX
             }
-        } catch (error) {
-            console.error('Registration error:', error);
-            alert('Registration failed: ' + error.message);
-        }
+            // ...
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification('Registration failed: ' + error.message, 'error'); // <-- FIX
+            }
     }
 
     async handleLogin(e) {
@@ -111,7 +112,7 @@ class AuthManager {
             console.error('Login error:', error);
             // FIX: Clear keys on any error
             cryptoManager.clearAllKeys();
-            alert('Login failed: ' + error.message);
+            showNotification('Login failed: ' + error.message, 'error'); // <-- FIX
         }
     }
 }

@@ -2,11 +2,14 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Note
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
 # Unused 'os' and 'hashlib' imports removed
 
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///evernote.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -101,10 +104,6 @@ def login():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-    else:
-        # If form data, still process but be careful
-        username = request.form.get('username')
-        password = request.form.get('password')
 
     user = User.query.filter_by(username=username).first()
 

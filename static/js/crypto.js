@@ -172,7 +172,7 @@ class CryptoManager {
         const passwordBuffer = encoder.encode(password);
         const importedKey = await crypto.subtle.importKey("raw", passwordBuffer, "PBKDF2", false, ["deriveKey"]);
         return await crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+            { name: "PBKDF2", salt: salt, iterations: 600000, hash: "SHA-256" },
             importedKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
         );
     }

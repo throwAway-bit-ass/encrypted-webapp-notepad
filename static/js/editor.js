@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     } catch (error) {
         console.error('Editor: Error ensuring session key:', error);
-        alert(error.message);
+        showNotification(error.message, 'error')
         window.location.href = '/logout';
         return; // Do not initialize editor if key fails
     }

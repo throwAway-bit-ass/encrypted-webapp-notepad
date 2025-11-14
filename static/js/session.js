@@ -173,6 +173,9 @@ class SessionManager {
     logoutDueToInactivity() {
         // FIX: Use global notification function
         showNotification('Session expired due to inactivity', 'error');
+        if (typeof cryptoManager !== 'undefined') {
+            cryptoManager.clearAllKeys();
+        }
         setTimeout(() => this.logout(), 1000);
     }
 
