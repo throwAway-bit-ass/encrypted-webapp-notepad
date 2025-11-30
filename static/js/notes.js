@@ -51,10 +51,6 @@ async function displayEncryptedNotes(notes) {
         return;
     }
 
-
-    let successfulDecryptions = 0;
-    let failedDecryptions = 0;
-
     for (const note of notes) {
         try {
 
@@ -65,8 +61,6 @@ async function displayEncryptedNotes(notes) {
             const title = await cryptoManager.decryptData(note.encrypted_title, note.iv);
             const content = await cryptoManager.decryptData(note.encrypted_content, note.iv);
 
-            successfulDecryptions++;
-
             const noteElement = createNoteElement({
                 ...note,
                 title,
@@ -75,7 +69,6 @@ async function displayEncryptedNotes(notes) {
             grid.appendChild(noteElement);
         } catch (error) {
             console.error('Error decrypting note:', error);
-            failedDecryptions++;
 
             const noteElement = createNoteElement({
                 ...note,
